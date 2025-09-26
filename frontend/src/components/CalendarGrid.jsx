@@ -18,7 +18,8 @@ const CalendarGrid = ({
   loading, 
   error, 
   onDateClick,
-  compact = false  // New prop for compact mode
+  compact = false, // New prop for compact mode
+  showOnlyHighlightedWeeks = false // New prop for filtering
 }) => {
   if (loading) {
     return (
@@ -123,98 +124,100 @@ const CalendarGrid = ({
         {calendarData && calendarData.calendar ? (
           calendarData.calendar.length > 0 ? (
 
-            calendarData.calendar.map((week, weekIndex) => {
-              const currentMonth = calendarData.month;
-              const weekHasHolidayInCurrentMonth = week.days.some(day => {
-                const dayHolidays = apiUtils.getHolidaysForDate(day.date, holidaysByDate);
-                return day.isCurrentMonth && dayHolidays.length > 0;
-              });
-              const weekColorClass = weekHasHolidayInCurrentMonth ? apiUtils.getWeekColorClass(week.weekColor) : 'week-default';
+            calendarData.calendar
+              .map((week, weekIndex) => {
+                const currentMonth = calendarData.month;
+                const weekHasHolidayInCurrentMonth = week.days.some(day => {
+                  const dayHolidays = apiUtils.getHolidaysForDate(day.date, holidaysByDate);
+                  return day.isCurrentMonth && dayHolidays.length > 0;
+                });
+                const weekColorClass = weekHasHolidayInCurrentMonth ? apiUtils.getWeekColorClass(week.weekColor) : 'week-default';
 
-              // Find consecutive holiday sequences in this week
-              const consecutiveSequences = getConsecutiveHolidaySequences(week.days);
-              // If any sequence has length >= 3, highlight whole week with white border
-              const highlightWholeWeekWhite = consecutiveSequences.some(seq => seq.length >= 3);
+                // Find consecutive holiday sequences in this week
+                const consecutiveSequences = getConsecutiveHolidaySequences(week.days);
+                // If any sequence has length >= 2, highlight whole week with blue border
+                const highlightWholeWeekBlue = consecutiveSequences.some(seq => seq.length >= 2);
 
-              return (
-                <div
-                  key={weekIndex}
-                  className={`calendar-week ${weekColorClass} ${compact ? 'compact' : ''} ${highlightWholeWeekWhite ? 'week-white-border' : ''}`}
-                  style={highlightWholeWeekWhite ? { border: '4px solid #fff', boxShadow: '0 0 0 2px #fff8' } : {}}
-                >
-                  {week.days.map((day, dayIndex) => {
-                    const holidayColor = getDateHolidayColor(day.date);
-                    const dayHolidays = apiUtils.getHolidaysForDate(day.date, holidaysByDate);
-                    const hasActualHoliday = dayHolidays.length > 0;
 
-                    // Is this day part of a consecutive holiday sequence?
-                    let isConsecutiveHoliday = false;
-                    let consecutiveType = null;
-                    consecutiveSequences.forEach(seq => {
-                      if (seq.includes(dayIndex)) {
-                        isConsecutiveHoliday = true;
-                        if (seq.length === 2) consecutiveType = 'yellow';
-                        if (seq.length >= 3) consecutiveType = 'white';
-                      }
-                    });
+                // If filtering is enabled, show weeks that have any holidays (not just consecutive)
+                if (showOnlyHighlightedWeeks && !weekHasHolidayInCurrentMonth) {
+                  return null;
+                }
 
-                    return (
-                      <div
-                        key={dayIndex}
-                        className={`calendar-day ${compact ? 'compact' : ''} ${!day.isCurrentMonth ? 'other-month' : ''} ${
-                          day.isToday ? 'today' : ''
-                        } ${hasActualHoliday ? 'has-holiday' : ''} ${isConsecutiveHoliday ? 'consecutive-holiday' : ''} ${consecutiveType === 'yellow' ? 'consecutive-yellow' : ''}`}
-                        onClick={() => onDateClick?.(day, dayHolidays)}
-                        style={{
-                          '--holiday-color': holidayColor,
-                          border: isConsecutiveHoliday
-                            ? consecutiveType === 'yellow'
-                              ? '4px solid #FFD600'
-                              : highlightWholeWeekWhite
-                                ? undefined
-                                : '4px solid #fff'
-                            : undefined,
-                          boxShadow: isConsecutiveHoliday
-                            ? consecutiveType === 'yellow'
-                              ? '0 0 0 2px #FFD60055'
-                              : highlightWholeWeekWhite
-                                ? undefined
-                                : '0 0 0 2px #fff8'
-                            : undefined
-                        }}
-                        title={hasActualHoliday ? 
-                          dayHolidays.map(h => h.name).join(', ') : 
-                          ''
+                // If filtering is enabled, force green highlight for weeks with holidays
+                const filteredWeekStyle = showOnlyHighlightedWeeks && weekHasHolidayInCurrentMonth
+                  ? { background: '#88E788', border: '4px solid #2563eb', boxShadow: '0 0 0 2px #2563eb33' }
+                  : highlightWholeWeekBlue
+                    ? { border: '4px solid #2563eb', boxShadow: '0 0 0 2px #2563eb33', background: '#fff' }
+                    : { background: '#fff' };
+
+                return (
+                  <div
+                    key={weekIndex}
+                    className={`calendar-week ${weekColorClass} ${compact ? 'compact' : ''} ${highlightWholeWeekBlue ? 'week-white-border' : ''}`}
+                    style={filteredWeekStyle}
+                  >
+                    {week.days.map((day, dayIndex) => {
+                      const holidayColor = getDateHolidayColor(day.date);
+                      const dayHolidays = apiUtils.getHolidaysForDate(day.date, holidaysByDate);
+                      const hasActualHoliday = dayHolidays.length > 0;
+
+                      // Is this day part of a consecutive holiday sequence?
+                      let isConsecutiveHoliday = false;
+                      let consecutiveType = null;
+                      consecutiveSequences.forEach(seq => {
+                        if (seq.includes(dayIndex)) {
+                          isConsecutiveHoliday = true;
+                          if (seq.length >= 2) consecutiveType = 'yellow';
                         }
-                      >
-                        <div className={`day-number ${compact ? 'compact' : ''}`}>
-                          {day.day}
-                        </div>
-                        {/* Holiday indicator - Simplified in compact mode */}
-                        {hasActualHoliday && !compact && (
-                          <div className="holiday-indicator">
+                      });
+
+                      return (
+                        <div
+                          key={dayIndex}
+                          className={`calendar-day ${compact ? 'compact' : ''} ${!day.isCurrentMonth ? 'other-month' : ''} ${
+                            day.isToday ? 'today' : ''
+                          } ${hasActualHoliday ? 'has-holiday' : ''} ${isConsecutiveHoliday ? 'consecutive-holiday' : ''} ${consecutiveType === 'yellow' ? 'consecutive-yellow' : ''}`}
+                          onClick={() => onDateClick?.(day, dayHolidays)}
+                          style={{
+                            '--holiday-color': holidayColor,
+                            border: isConsecutiveHoliday && consecutiveType === 'yellow' ? '4px solid #FFD600' : undefined,
+                            boxShadow: isConsecutiveHoliday && consecutiveType === 'yellow' ? '0 0 0 2px #FFD60055' : undefined,
+                            background: '#fff'
+                          }}
+                          title={hasActualHoliday ? 
+                            dayHolidays.map(h => h.name).join(', ') : 
+                            ''
+                          }
+                        >
+                          <div className={`day-number ${compact ? 'compact' : ''}`}>
+                            {day.day}
+                          </div>
+                          {/* Holiday indicator - Simplified in compact mode */}
+                          {hasActualHoliday && !compact && (
+                            <div className="holiday-indicator">
+                              <div 
+                                className="holiday-dot"
+                                style={{ backgroundColor: holidayColor }}
+                              ></div>
+                              {dayHolidays.length > 1 && (
+                                <span className="holiday-count">+{dayHolidays.length - 1}</span>
+                              )}
+                            </div>
+                          )}
+                          {/* Compact holiday indicator */}
+                          {hasActualHoliday && compact && (
                             <div 
-                              className="holiday-dot"
+                              className="holiday-dot-compact"
                               style={{ backgroundColor: holidayColor }}
                             ></div>
-                            {dayHolidays.length > 1 && (
-                              <span className="holiday-count">+{dayHolidays.length - 1}</span>
-                            )}
-                          </div>
-                        )}
-                        {/* Compact holiday indicator */}
-                        {hasActualHoliday && compact && (
-                          <div 
-                            className="holiday-dot-compact"
-                            style={{ backgroundColor: holidayColor }}
-                          ></div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })
           ) : (
             <div className="calendar-empty">No holidays this month.</div>
           )

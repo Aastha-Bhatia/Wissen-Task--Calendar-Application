@@ -7,6 +7,7 @@ import MonthNavigation from './components/MonthNavigation';
 import { Wifi, WifiOff, RefreshCw, AlertTriangle, CheckCircle, Calendar, LayoutGrid } from 'lucide-react';
 import './App.css';
 
+
 function App() {
   // Hooks for managing state
   const calendar = useCalendar('US');
@@ -17,6 +18,7 @@ function App() {
   const [selectedHoliday, setSelectedHoliday] = useState(null);
   const [showHolidayDetails, setShowHolidayDetails] = useState(false);
   const [currentView, setCurrentView] = useState('monthly'); // 'monthly' or 'quarterly'
+  const [showOnlyHighlightedWeeks, setShowOnlyHighlightedWeeks] = useState(false);
 
   // Handle date click to show holiday details
   const handleDateClick = (day, dayHolidays) => {
@@ -205,19 +207,35 @@ function App() {
           </div>
         </section>
 
+
         {/* Calendar/Quarterly Section */}
         <section className="calendar-section">
           <div className="calendar-container">
             {currentView === 'monthly' ? (
-              /* Monthly Calendar View */
-              <CalendarGrid
-                calendarData={calendar.calendarData}
-                holidays={calendar.holidays}
-                loading={calendar.loading}
-                error={calendar.error}
-                onDateClick={handleDateClick}
-                compact={false}
-              />
+              <>
+                {/* Checkbox to show only highlighted weeks */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}>
+                    <input
+                      type="checkbox"
+                      checked={showOnlyHighlightedWeeks}
+                      onChange={e => setShowOnlyHighlightedWeeks(e.target.checked)}
+                      style={{ width: '18px', height: '18px' }}
+                    />
+                    Show only highlighted weeks (consecutive holidays)
+                  </label>
+                </div>
+                {/* Monthly Calendar View */}
+                <CalendarGrid
+                  calendarData={calendar.calendarData}
+                  holidays={calendar.holidays}
+                  loading={calendar.loading}
+                  error={calendar.error}
+                  onDateClick={handleDateClick}
+                  compact={false}
+                  showOnlyHighlightedWeeks={showOnlyHighlightedWeeks}
+                />
+              </>
             ) : (
               /* Quarterly View */
               <QuarterlyView
@@ -344,4 +362,4 @@ function App() {
   );
 }
 
-export default App;
+export default App; 

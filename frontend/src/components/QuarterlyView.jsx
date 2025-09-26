@@ -46,6 +46,8 @@ const QuarterlyView = ({
     4: 'Fourth Quarter (Oct - Dec)'
   };
 
+  const [showOnlyHighlightedWeeks, setShowOnlyHighlightedWeeks] = React.useState(false);
+
   return (
     <div className="quarterly-view">
       {/* Quarter Navigation */}
@@ -89,6 +91,19 @@ const QuarterlyView = ({
         </div>
       </div>
 
+      {/* Checkbox to show only highlighted weeks */}
+      <div style={{ marginBottom: '1rem' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}>
+          <input
+            type="checkbox"
+            checked={showOnlyHighlightedWeeks}
+            onChange={e => setShowOnlyHighlightedWeeks(e.target.checked)}
+            style={{ width: '18px', height: '18px' }}
+          />
+          Show only weeks with holidays (green highlight)
+        </label>
+      </div>
+
       {/* Three Month Calendars */}
       <div className="quarter-calendars">
         {monthsInQuarter.map((monthDate, index) => {
@@ -119,6 +134,7 @@ const QuarterlyView = ({
                   error={error}
                   onDateClick={onDateClick}
                   compact={true}
+                  showOnlyHighlightedWeeks={showOnlyHighlightedWeeks}
                 />
               </div>
             </div>
